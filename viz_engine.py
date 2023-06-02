@@ -8,28 +8,37 @@ def plt_stock_std(df : pd.DataFrame, date_range : tuple, title: str):
     start, end = date_range
 
     # Calculate volatility
-    df['Volatility'] = df['Close'].rolling(window=50).std()
+    df['Volatility'] = df['Close'].rolling(window=252).std()
 
     # Apply smoothing with simple moving average
-    df['Smooth'] = df['Close'].rolling(window=10).mean()
+    df['Smooth_100'] = df['Close'].rolling(window=100).mean()
+    df['Smooth_200'] = df['Close'].rolling(window=200).mean()
 
     # Add plots and limit to date range
     add_plots=[
-        mpf.make_addplot(df['Smooth'].loc[pd.IndexSlice[start:end]], color='orange'),
+        mpf.make_addplot(df['Smooth_100'].loc[pd.IndexSlice[start:end]], color='orange'),
+        mpf.make_addplot(df['Smooth_200'].loc[pd.IndexSlice[start:end]], color='c'),
         mpf.make_addplot(df['Volatility'].loc[pd.IndexSlice[start:end]], color='blue', panel=1, secondary_y=True)
     ]
 
     # Limit to date range
     df = df.loc[pd.IndexSlice[start:end]]
 
-    fig, ax = mpf.plot(df, type='candle', style='charles', title=title, addplot=add_plots, returnfig=True)
+    fig, ax = mpf.plot(df, type='candle', style='charles', addplot=add_plots, returnfig=True)
 
     # Create legend
     legend_items = [
-        plt.Line2D([], [], color='orange', label='Moving Average (window=10)'),
-        plt.Line2D([], [], color='b', label='Volatility (window=50)')
+        plt.Line2D([], [], color='orange', label='Moving Average (window=100)'),
+        plt.Line2D([], [], color='c', label='Moving Average (window=200)'),
+        plt.Line2D([], [], color='b', label='Volatility (window=252)')
     ]
+    # ax[0].plot(x, pred)
     ax[0].legend(handles=legend_items)
+    ax[0].set_ylim(top=df[['High', 'Low']].max().max() + 8)
+
+    fig.set_size_inches(fig_size)
+    fig.savefig(f'./plots/{title}_std.jpg', dpi=300)
+    fig.savefig(f'./plots/{title}_std.svg', format='svg')
 
 def plt_stock(df : pd.DataFrame, date_range : tuple, title: str, trend_lines : tuple):
     # Unpack parameters
@@ -57,16 +66,23 @@ def plt_stock(df : pd.DataFrame, date_range : tuple, title: str, trend_lines : t
     # Limit to date range
     df = df.loc[pd.IndexSlice[start:end]]
 
-    fig, ax = mpf.plot(df, type='candle', style='charles', title=title, addplot=add_plots, returnfig=True, tlines=tlines_list)
+    fig, ax = mpf.plot(df, type='candle', style='charles', returnfig=True, tlines=tlines_list)
 
     # Create legend
     legend_items = [
         plt.Line2D([], [], color='r', label='Resistance Trend'),
         plt.Line2D([], [], color='g', label='Support Trend'),
-        plt.Line2D([], [], color='orange', label='Moving Average (window=10)'),
-        plt.Line2D([], [], color='b', label='Volatility (window=50)')
     ]
     ax[0].legend(handles=legend_items)
+
+    ax[0].set_ylim(top=df[['High', 'Low']].max().max() + 8)
+
+    fig.set_size_inches(fig_size)
+    fig.savefig(f'./plots/{title}_trends.jpg', dpi=300)
+    fig.savefig(f'./plots/{title}_trends.svg', format='svg')
+
+pagewidth = 5.8 # inches figsize: (width, height)
+fig_size = (pagewidth, 5.5)
 
 dir_archive = os.path.join(os.curdir, 'archive')
 dir_test = os.path.join(dir_archive, 'AAPL_2006-01-01_to_2018-01-01.csv')
@@ -84,9 +100,8 @@ datepairs_down = [
 ]
 
 plt_stock(df=df_test, date_range=('2011-12-16','2013-12-13'), trend_lines=(datepairs_up, datepairs_down), title='APPL')
-mpf.show()
+plt_stock_std(df=df_test, date_range=('2006-01-03','2017-12-29'), title='APPL')
 
-dir_archive = os.path.join(os.curdir, 'archive')
 dir_test = os.path.join(dir_archive, 'GOOGL_2006-01-01_to_2018-01-01.csv')
 df_test = pd.read_csv(dir_test, index_col=0, parse_dates=True)
 
@@ -105,9 +120,8 @@ datepairs_down = [
 ]
 
 plt_stock(df=df_test, date_range=('2014-03-19','2015-04-25'), trend_lines=(datepairs_up, datepairs_down), title='GOOGL')
-mpf.show()
+plt_stock_std(df=df_test, date_range=('2006-01-03','2017-12-29'), title='GOOGL')
 
-dir_archive = os.path.join(os.curdir, 'archive')
 dir_test = os.path.join(dir_archive, 'CSCO_2006-01-01_to_2018-01-01.csv')
 df_test = pd.read_csv(dir_test, index_col=0, parse_dates=True)
 
@@ -123,4 +137,5 @@ datepairs_down = [
 ]
 
 plt_stock(df=df_test, date_range=('2006-01-03','2017-12-29'), title='CSCO', trend_lines=(datepairs_up, datepairs_down))
+plt_stock_std(df=df_test, date_range=('2006-01-03','2017-12-29'), title='CSCO')
 mpf.show()
